@@ -1,0 +1,788 @@
+# This is the Open API interface for Open Service Broker API. Every attempt will
+# be made to make the Open API version of OSB API accurately represent the
+# written specification. If the spec and this document conflict, the spec is
+# the authority.
+
+openapi: "3.0.0"
+tags:
+- name: Open Service Broker API Specification
+
+info:
+  title: Open Service Broker API
+  description: The Open Service Broker API defines an HTTP(S) interface between Platforms and Service Brokers.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: Open Service Broker API
+    url: https://www.openservicebrokerapi.org/
+    email: open-service-broker-api@googlegroups.com
+  version: master - might contain changes that are not yet released
+
+servers:
+  - url: http://example.com
+    description: Broker Endpoint
+  - url: http://localhost:3000
+    description: OSB Checker - MockOSB
+
+paths:
+
+  /v2/service_instances/{instance_id}:
+    put:
+      summary: provision a service instance
+      tags:
+        - ServiceInstances
+      operationId: serviceInstance.provision
+      parameters:
+        - $ref: '#/components/parameters/APIVersion'
+        - $ref: '#/components/parameters/OriginatingIdentity'
+        - name: instance_id
+          in: path
+          description: instance id of instance to provision
+          required: true
+          schema:
+            type: string
+        - name: accepts_incomplete
+          in: query
+          description: asynchronous operations supported
+          schema:
+            type: boolean
+      requestBody:
+        description: parameters for the requested service instance provision
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceInstanceProvisionRequestBody'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInstanceProvisionResponse'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInstanceProvisionResponse'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInstanceAsyncOperation'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: deprovision a service instance
+      tags:
+        - ServiceInstances
+      operationId: serviceInstance.deprovision
+      parameters:
+        - $ref: '#/components/parameters/APIVersion'
+        - $ref: '#/components/parameters/OriginatingIdentity'
+        - name: instance_id
+          in: path
+          description: id of instance being deleted
+          required: true
+          schema:
+            type: string
+        - name: service_id
+          in: query
+          description: id of the service associated with the instance being deleted
+          required: true
+          schema:
+            type: string
+        - name: plan_id
+          in: query
+          description: id of the plan associated with the instance being deleted
+          required: true
+          schema:
+            type: string
+        - name: accepts_incomplete
+          in: query
+          description: asynchronous deprovision supported
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Object'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncOperation'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Gone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: get a service instance
+      tags:
+        - ServiceInstances
+      operationId: serviceInstance.get
+      parameters:
+        - $ref: '#/components/parameters/APIVersion'
+        - $ref: '#/components/parameters/OriginatingIdentity'
+        - name: instance_id
+          in: path
+          description: instance id of instance to fetch
+          required: true
+          schema:
+            type: string
+        - name: service_id
+          in: query
+          description: id of the service associated with the instance
+          schema:
+            type: string
+        - name: plan_id
+          in: query
+          description: id of the plan associated with the instance
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInstanceResource'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /identity/token:
+    post:
+      summary: get the catalog of services that the service broker offers
+      tags:
+        - IAM Token
+      operationId: catalog.get
+      parameters:
+        - $ref: '#/components/parameters/grant_type'
+        - $ref: '#/components/parameters/apikey'
+      responses:
+        '200':
+          description: Successful Token Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+  /v4/metering/resources/{resource_id}/usage:
+    post:
+      summary: Report usage for a mythical resource.
+      tags:
+        - Usage
+      operationId: catalog.get
+      parameters:
+        - $ref: '#/components/parameters/resource_id'
+      requestBody:
+        description: parameters for the requested service instance provision
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsageRequest'
+      responses:
+        '202':
+          description: catalog response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+components:
+  parameters:
+    resource_id:
+      name: resource_id
+      in: path
+      description: The resource for which the usage is submitted.
+      required: true
+      schema:
+        type: string
+        default: 'f5086e3df886495991303628d21da513'
+    grant_type:
+      name: grant_type
+      in: query
+      description: Grant type for this API call. You must set the grant type to
+      required: true
+      schema:
+        type: string
+        default: 'urn:ibm:params:oauth:grant-type:apikey'
+    apikey:
+      name: apikey
+      in: query
+      description: The value of the api key.
+      required: true
+      schema:
+        type: string
+        default: 'eeaf64b6-cee5-4f7e-ac94-57d34690301e'
+    APIVersion:
+      name: X-Broker-API-Version
+      in: header
+      description: version number of the Service Broker API that the Platform will use
+      required: true
+      schema:
+        type: string
+        default: '2.13'
+    OriginatingIdentity:
+      name: X-Broker-API-Originating-Identity
+      in: header
+      description: identity of the user that initiated the request from the Platform
+      schema:
+        type: string
+
+  schemas:
+    UsageRequest:
+      type: array
+      items:
+       $ref: '#/components/schemas/ResourceInstanceUsage'
+    ResourceInstanceUsage:
+      type: object
+      required:
+        - resource_instance_usage
+        - plan_id
+        - start
+        - end
+        - measured_usage
+        - region
+        - consumer_id
+      properties:
+        plan_id:
+          type: string
+          default: 'SPrXw5tBE3'
+        start:
+          type: integer
+          default: 12344
+        end:
+          type: integer
+          default: 3600
+        measured_usage:
+          type: array
+          default: 1473188353
+        region:
+          type: integer
+          default: 1473188353
+        consumer_id:
+          type: integer
+          default: 1473188353
+    UsageResponse:
+      type: object
+      properties:
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceUsage'
+    ResourceUsage:
+      type: object
+      properties:
+        status:
+          type: integer
+          required: true
+          default: 202
+        location:
+          type: string
+          required: true
+          default: '/v4/metering/resources/sdk-for-nodejs/usage/normalized/t%2F0001501468312892-0-0-1-0%2Fk%2F265d9d22597d4ee589138929093f1246'
+        code:
+          type: string
+          default: 'usage_submitted'
+        message:
+          type: string
+          default: 'Usage submitted successfully'
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+        - expiration
+      properties:
+        access_token:
+          type: string
+          default: 'eyJhbGciOiJIUz'
+        refresh_token:
+          type: string
+          default: 'SPrXw5tBE3'
+        token_type:
+          type: string
+          default: 'Bearer'
+        expires_in:
+          type: integer
+          default: 3600
+        expiration:
+          type: integer
+          default: 1473188353
+    Catalog:
+      type: object
+      properties:
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+
+    Service:
+      type: object
+      required:
+        - name
+        - id
+        - description
+        - bindable
+        - plans
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        requires:
+          type: array
+          items:
+            type: string
+            enum:
+              - syslog_drain
+              - route_forwarding
+              - volume_mount
+        bindable:
+          type: boolean
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        dashboard_client:
+          $ref: '#/components/schemas/DashboardClient'
+        binding_rotatable:
+          type: boolean
+        plan_updateable:
+          type: boolean
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+
+    DashboardClient:
+      type: object
+      properties:
+        id:
+            type: string
+        secret:
+            type: string
+        redirect_uri:
+            type: string
+
+    Plan:
+      type: object
+      required:
+        - id
+        - name
+        - description
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        maintenance_info:
+          $ref: '#/components/schemas/MaintenanceInfo'
+        free:
+          type: boolean
+          default: true
+        bindable:
+          type: boolean
+        schemas:
+          $ref: '#/components/schemas/Schemas'
+        maximum_polling_duration:
+          type: integer
+        plan_updateable:
+          type: boolean
+        binding_rotatable:
+          type: boolean
+          default: false
+
+    Schemas:
+      type: object
+      properties:
+        service_instance:
+          $ref: '#/components/schemas/ServiceInstanceSchema'
+        service_binding:
+          $ref: '#/components/schemas/ServiceBindingSchema'
+
+    ServiceInstanceSchema:
+      type: object
+      properties:
+        create:
+          type: object
+          properties:
+            parameters:
+              type: object
+        update:
+          type: object
+          properties:
+            parameters:
+              type: object
+
+    ServiceBindingSchema:
+      type: object
+      properties:
+        create:
+          type: object
+          properties:
+            parameters:
+              type: object
+
+    ServiceInstanceResource:
+      type: object
+      properties:
+        service_id:
+          type: string
+        plan_id:
+          type: string
+        dashboard_url:
+          type: string
+        parameters:
+          $ref: '#/components/schemas/Object'
+        maintenance_info:
+          $ref: '#/components/schemas/MaintenanceInfo'
+        metadata:
+          $ref: '#/components/schemas/ServiceInstanceMetadata'
+
+    ServiceInstanceProvisionRequestBody:
+      type: object
+      required:
+        - service_id
+        - plan_id
+        - organization_guid
+        - space_guid
+      properties:
+        service_id:
+          type: string
+        plan_id:
+          type: string
+        context:
+          $ref: '#/components/schemas/Context'
+        organization_guid:
+          type: string
+          deprecated: true
+        space_guid:
+          type: string
+          deprecated: true
+        parameters:
+          $ref: '#/components/schemas/Object'
+
+    ServiceInstanceProvisionResponse:
+      type: object
+      properties:
+        dashboard_url:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/ServiceInstanceMetadata'
+
+    ServiceInstanceAsyncOperation:
+      type: object
+      properties:
+        dashboard_url:
+          type: string
+        operation:
+          type: string # could be a link object to last operation
+        metadata:
+          $ref: '#/components/schemas/ServiceInstanceMetadata'
+
+    ServiceInstanceMetadata:
+      type: object
+      properties:
+        labels:
+          type: object
+        attributes:
+          type: object
+
+    ServiceInstanceUpdateRequestBody:
+      type: object
+      required:
+        - service_id
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        service_id:
+          type: string
+        plan_id:
+          type: string
+        parameters:
+          $ref: '#/components/schemas/Object'
+        previous_values:
+          $ref: '#/components/schemas/ServiceInstancePreviousValues'
+
+    ServiceInstancePreviousValues:
+      type: object
+      properties:
+        service_id:
+          type: string
+          deprecated: true
+        plan_id:
+          type: string
+        organization_id:
+          type: string
+          deprecated: true
+        space_id:
+          type: string
+          deprecated: true
+
+    AsyncOperation:
+      type: object
+      properties:
+        operation:
+          type: string
+
+    LastOperationResource:
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - "in progress"
+            - "succeeded"
+            - "failed"
+        description:
+          type: string
+        instance_usable:
+          type: boolean
+        update_repeatable:
+          type: boolean
+
+    ServiceBindingResource:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ServiceBindingMetadata'
+        credentials:
+          $ref: '#/components/schemas/Object'
+        syslog_drain_url:
+          type: string
+        route_service_url:
+          type: string
+        volume_mounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceBindingVolumeMount'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceBindingEndpoint'
+        parameters:
+          $ref: '#/components/schemas/Object'
+
+    ServiceBindingRequest:
+      type: object
+      required:
+        - service_id
+        - plan_id
+      properties:
+        context:
+          $ref: '#/components/schemas/Context'
+        service_id:
+          type: string
+        plan_id:
+          type: string
+        app_guid:
+          type: string
+          deprecated: true
+        bind_resource:
+          $ref: '#/components/schemas/ServiceBindingResouceObject'
+        parameters:
+          $ref: '#/components/schemas/Object'
+        predecessor_binding_id:
+          type: string
+
+    ServiceBindingMetadata:
+      type: object
+      properties:
+        expires_at:
+          type: string
+        renew_before:
+          type: string
+
+    ServiceBindingResouceObject:
+      type: object
+      properties:
+        app_guid:
+          type: string
+        route:
+          type: string
+
+    ServiceBindingResponse:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ServiceBindingMetadata'
+        credentials:
+          $ref: '#/components/schemas/Object'
+        syslog_drain_url:
+          type: string
+        route_service_url:
+          type: string
+        volume_mounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceBindingVolumeMount'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceBindingEndpoint'
+
+    ServiceBindingEndpoint:
+      type: object
+      required:
+      - host
+      - ports
+      properties:
+        host:
+          type: string
+        ports:
+          type: array
+          items:
+            type: string
+        protocol:
+          type: string
+          enum:
+          - 'tcp'
+          - 'udp'
+          - 'all'
+          default: 'tcp'
+
+    ServiceBindingVolumeMount:
+      type: object
+      required:
+        - driver
+        - container_dir
+        - mode
+        - device_type
+        - device
+      properties:
+        driver:
+          type: string
+        container_dir:
+          type: string
+        mode:
+          type: string
+          enum:
+            - r
+            - rw
+        device_type:
+          type: string
+          enum:
+            - shared
+        device:
+          $ref: '#/components/schemas/ServiceBindingVolumeMountDevice'
+
+    ServiceBindingVolumeMountDevice:
+      type: object
+      required:
+        - volume_id
+      properties:
+        volume_id:
+          type: string
+        mount_config:
+          $ref: '#/components/schemas/Object'
+
+    Context:
+      description: "See [Context Conventions](https://github.com/openservicebrokerapi/servicebroker/blob/master/profile.md#context-object) for more details."
+      type: object
+
+    Metadata:
+      description: "See [Service Metadata Conventions](https://github.com/openservicebrokerapi/servicebroker/blob/master/profile.md#service-metadata) for more details."
+      type: object
+
+    MaintenanceInfo:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+        description:
+          type: string
+
+    Object:
+      type: object
+
+    Error:
+      description: "See [Service Broker Errors](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#service-broker-errors) for more details."
+      type: object
+      properties:
+        error:
+          type: string
+        description:
+          type: string
+        instance_usable:
+          type: boolean
+        update_repeatable:
+          type: boolean
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
+security:
+  - basicAuth: []
+
+externalDocs:
+  description: The offical Open Service Broker API specification
+  url: https://github.com/openservicebrokerapi/servicebroker/
